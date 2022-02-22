@@ -23,6 +23,8 @@ def sample_surface_with_color(mesh, count, face_weight=None):
       Points in space on the surface of mesh
     face_index : (count,) int
       Indices of faces for each sampled point
+    colors : (count, 4) uint8
+      each sampled point color
     """
 
     if face_weight is None:
@@ -143,7 +145,7 @@ def uv_to_interpolation_color(uv, image):
 if __name__ == "__main__":
 
     src_path = './example/fuze.obj'
-    dst_path = 'result/fuze5.ply'
+    dst_path = 'result/fuze.ply'
 
     mesh = trimesh.load(src_path)
     sample, _, color = sample_surface_with_color(mesh, 100000)
