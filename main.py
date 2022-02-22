@@ -38,15 +38,22 @@ def sample_surface_with_color(mesh, count, face_weight=None):
     # get the index of the selected faces
     face_index = np.searchsorted(weight_cum, face_pick)
 
-    # pull triangles into the form of an origin + 2 vectors
-    tri_origins = mesh.triangles[:, 0]  # (N, 3)
-    tri_vectors = mesh.triangles[:, 1:].copy()  # (N, 2, 3)
+    tri_origins = mesh.vertices[mesh.faces[:, 0]]  # (N, 3)
+    tri_vectors = mesh.vertices[mesh.faces[:, 1:]].copy()  # (N, 2, 3)
     tri_origins_tile = np.tile(tri_origins, (1, 2)).reshape((-1, 2, 3))
     tri_vectors -= tri_origins_tile
+
+    uv_origins = mesh.visual.uv[mesh.faces[:, 0]]  # (N, 2)
+    uv_vectors = mesh.visual.uv[mesh.faces[:, 1:]].copy()  # (N, 2, 2)
+    uv_origins_tile = np.tile(uv_origins, (1, 2)).reshape((-1, 2, 2))
+    uv_vectors -= uv_origins_tile
 
     # pull the vectors for the faces we are going to sample from
     tri_origins = tri_origins[face_index]  # (N, 3)
     tri_vectors = tri_vectors[face_index]  # (N, 2, 3)
+
+    uv_origins = uv_origins[face_index]  # (N, 2)
+    uv_vectors = uv_vectors[face_index]  # (N, 2, 2)
 
     # randomly generate two 0-1 scalar components to multiply edge vectors by
     random_lengths = np.random.random((len(tri_vectors), 2, 1))  # (N, 2, 1)
@@ -59,42 +66,16 @@ def sample_surface_with_color(mesh, count, face_weight=None):
     random_lengths[random_test] -= 1.0
     random_lengths = np.abs(random_lengths)  # (N, 2, 1)
 
-    # multiply triangle edge vectors by the random lengths and sum
-    # (N, 2, 3) * (N, 2, 1)
     sample_vector = (tri_vectors * random_lengths).sum(axis=1)  # (N, 3)
+    sample_uv_vector = (uv_vectors * random_lengths).sum(axis=1)  # (N, 3)
 
     # finally, offset by the origin to generate
     # (n,3) points in space on the triangle
     samples = sample_vector + tri_origins
+    uv_samples = sample_uv_vector + uv_origins
 
     texture = mesh.visual.material.image
-    uv = mesh.visual.uv
-
-    faces0 = mesh.triangles[face_index, 0]  # (N, 3)
-    faces1 = mesh.triangles[face_index, 1]  # (N, 3)
-    faces2 = mesh.triangles[face_index, 2]  # (N, 3)
-
-    kdtree = mesh.kdtree
-
-    _, idx0 = kdtree.query(faces0, k=1)
-    _, idx1 = kdtree.query(faces1, k=1)
-    _, idx2 = kdtree.query(faces2, k=1)
-
-    uv_o = uv[idx0]  # (N, 2)
-    uv_d1 = uv[idx1] - uv_o  # (N, 2)
-    uv_d2 = uv[idx2] - uv_o  # (N, 2)
-
-    uv_d1 = uv_d1[:, np.newaxis, :]
-    uv_d2 = uv_d2[:, np.newaxis, :]
-
-    # (N, 2, 2) * (N, 2, 1)
-    uv_vec = np.concatenate([uv_d1, uv_d2], axis=1)
-
-    uv_vec = (uv_vec * random_lengths).sum(axis=1)  # (N, 2)
-
-    sample_uv = uv_o + uv_vec
-
-    colors = uv_to_interpolation_color(sample_uv, texture)
+    colors = uv_to_interpolation_color(uv_samples, texture)
 
     return samples, face_index, colors
 
@@ -158,13 +139,11 @@ def uv_to_interpolation_color(uv, image):
 
     return colors.astype(np.uint8)
 
+
 if __name__ == "__main__":
 
     src_path = './example/fuze.obj'
-    dst_path = 'result/fuze.ply'
-
-    # src_path = './example/fuze2.obj'
-    # dst_path = './result/fuze2.ply'
+    dst_path = 'result/fuze5.ply'
 
     mesh = trimesh.load(src_path)
     sample, _, color = sample_surface_with_color(mesh, 100000)
