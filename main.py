@@ -77,12 +77,12 @@ def sample_surface_with_color(mesh, count, face_weight=None):
     uv_samples = sample_uv_vector + uv_origins
 
     texture = mesh.visual.material.image
-    colors = uv_to_interpolation_color(uv_samples, texture)
+    colors = uv_to_interpolated_color(uv_samples, texture)
 
     return samples, face_index, colors
 
 
-def uv_to_interpolation_color(uv, image):
+def uv_to_interpolated_color(uv, image):
     """
     Get the color from texture image using bilinear sampling.
 
@@ -139,8 +139,7 @@ def uv_to_interpolation_color(uv, image):
     # conversion to RGBA should have corrected shape
     assert colors.ndim == 2 and colors.shape[1] == 4
 
-    return colors.astype(np.uint8)
-
+    return colors
 
 if __name__ == "__main__":
 
@@ -150,5 +149,5 @@ if __name__ == "__main__":
     mesh = trimesh.load(src_path)
     sample, _, color = sample_surface_with_color(mesh, 100000)
 
-    pcd = trimesh.points.PointCloud(sample, color)
+    pcd = trimesh.points.PointCloud(sample, color.astype(np.uint8))
     pcd.export(dst_path)
