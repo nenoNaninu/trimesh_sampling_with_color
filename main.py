@@ -23,7 +23,7 @@ def sample_surface_with_color(mesh, count, face_weight=None):
       Points in space on the surface of mesh
     face_index : (count,) int
       Indices of faces for each sampled point
-    colors : (count, 4) uint8
+    colors : (count, 4) float
       each sampled point color
     """
 
